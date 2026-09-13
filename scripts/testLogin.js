@@ -10,7 +10,8 @@ async function testLogin() {
     process.exit(1);
   }
 
-  const response = await fetch(`${BASE_URL}/auth/login`, {
+  // 1. Login
+  const loginResponse = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -22,12 +23,51 @@ async function testLogin() {
     }),
   });
 
-  console.log("Status:", response.status);
+  console.log("Login status:", loginResponse.status);
 
-  const data = await response.json();
+  const loginData = await loginResponse.json();
 
-  console.log("Response:");
-  console.log(JSON.stringify(data, null, 2));
+  console.log("Login response:");
+  console.log({
+    ...loginData,
+    access_token: "<REDACTED>",
+    refresh_token: "<REDACTED>",
+  });
+
+  if (!loginResponse.ok) {
+    return;
+  }
+
+  // 2. Test refresh
+  const refreshResponse = await fetch(
+    `${BASE_URL}${loginData.refresh_url}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY,
+      },
+      body: JSON.stringify({
+        refresh_token: loginData.refresh_token,
+      }),
+    }
+  );
+
+  console.log("\nRefresh status:", refreshResponse.status);
+
+  const refreshData = await refreshResponse.json();
+
+  console.log("Refresh response:");
+
+  console.log({
+    ...refreshData,
+    access_token: refreshData.access_token
+      ? "<REDACTED>"
+      : undefined,
+    refresh_token: refreshData.refresh_token
+      ? "<REDACTED>"
+      : undefined,
+  });
 }
 
 testLogin().catch((error) => {
