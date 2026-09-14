@@ -1,0 +1,175 @@
+{
+  "api_key": "IVY26-XXXXXXXXXXXX",
+  "candidate": {
+    "name": "Aditya",
+    "email": "aditya@mnnit.ac.in",
+    "repo_url": "https://github.com/your-username/ivy-assignment",
+    "demo_url": "https://ivy-assignment.vercel.app"
+  },
+  "answers": {
+    "total_listing_records": 5100,
+    "unique_properties": 4922,
+    "active_listings": 4017,
+    "corrupt_listing_ids": [
+      "100-5000050",
+      "100-5000339",
+      "100-5002758",
+      "100-5003364",
+      "100-5003914",
+      "100-5004028",
+      "DWE-5000518",
+      "DWE-5001781",
+      "DWE-5001929",
+      "DWE-5001932",
+      "DWE-5002147",
+      "DWE-5002309",
+      "DWE-5002623",
+      "DWE-5003926",
+      "MAG-5000193",
+      "MAG-5000775",
+      "MAG-5001549",
+      "MAG-5001852",
+      "MAG-5001874",
+      "MAG-5002204",
+      "MAG-5003706",
+      "SQU-5000538",
+      "SQU-5001700",
+      "SQU-5001891",
+      "SQU-5002700",
+      "SQU-5003006",
+      "SQU-5003244",
+      "SQU-5003458",
+      "SQU-5003909",
+      "ZER-5001536",
+      "ZER-5002788",
+      "ZER-5003818",
+      "ZER-5004007"
+    ],
+    "total_monthly_rent": 7430900,
+    "avg_price_per_sqft_2bhk": 31824.79,
+    "costliest_project": {
+      "project_id": "P50016",
+      "price_max_inr": 124400000
+    },
+    "listings_last_7_days": 167,
+    "fake_listing_ids": [
+      "DWE-5000893",
+      "DWE-5001600",
+      "DWE-5003025",
+      "DWE-5003030",
+      "MAG-5002371",
+      "MAG-5003431",
+      "SQU-5002463"
+    ],
+    "projects_with_wrong_listing_count": 446
+  },
+  "findings": [
+    {
+      "endpoint": "/v1/projects",
+      "category": "units",
+      "documented": "Money: Indian rupees, integer, everywhere in the API (price_min, price_max in INR)",
+      "actual": "price_min and price_max are given in Crores (decimal float) rather than integer Indian Rupees",
+      "how_found": "Observed maximum price value of 12.44 instead of integer rupees",
+      "impact": "Requires client-side conversion by factor of 10^7 (Cr to INR) to avoid displaying incorrect prices",
+      "evidence": [
+        "P50016"
+      ]
+    },
+    {
+      "endpoint": "/v1/listings",
+      "category": "units",
+      "documented": "Area: Square feet, integer, everywhere in the API",
+      "actual": "Certain listings (primarily MagicBricks MAG- prefix) report carpet_area in square metres instead of square feet",
+      "how_found": "Audited listings where 2-4 BHK apartments reported carpet areas under 200",
+      "impact": "Calculations of price per square foot are inflated by ~10.76x without unit conversion",
+      "evidence": [
+        "MAG-5002240",
+        "MAG-5000195",
+        "MAG-5005086",
+        "MAG-5004391",
+        "MAG-5002264",
+        "MAG-5002999",
+        "MAG-5005069",
+        "MAG-5004859",
+        "MAG-5000775",
+        "MAG-5004277",
+        "MAG-5004527",
+        "MAG-5004218",
+        "MAG-5000950",
+        "MAG-5005024",
+        "MAG-5001780"
+      ]
+    },
+    {
+      "endpoint": "/v1/listings",
+      "category": "data_quality",
+      "documented": "Returns valid geographic latitude and longitude coordinates",
+      "actual": "Several listing records have latitude and longitude values transposed (latitude > 70 and longitude ~ 19)",
+      "how_found": "Plotted coordinates against Mumbai bounding box; observed coordinates inverted",
+      "impact": "Map markers render in Antarctica / Indian Ocean unless coordinates are swapped back",
+      "evidence": [
+        "MAG-5002818",
+        "DWE-5003960",
+        "SQU-5003928",
+        "100-5001980",
+        "100-5001382",
+        "MAG-5002515",
+        "SQU-5001264",
+        "SQU-5001967",
+        "MAG-5000752",
+        "SQU-5002609",
+        "ZER-5003369"
+      ]
+    },
+    {
+      "endpoint": "/v1/listings",
+      "category": "completeness",
+      "documented": "Returns active sale listings in your city. Inactive, expired and withdrawn listings are excluded server side",
+      "actual": "The endpoint returns inactive listings where is_live is false",
+      "how_found": "Counted active listings where is_live == True vs total retrieved records",
+      "impact": "Frontend must explicitly filter is_live on client side to avoid displaying inactive properties",
+      "evidence": [
+        "SQU-5001676",
+        "100-5003165",
+        "DWE-5003578",
+        "DWE-5002882",
+        "ZER-5004068",
+        "ZER-5004254",
+        "SQU-5002474",
+        "MAG-5003923",
+        "DWE-5000422",
+        "SQU-5002316",
+        "ZER-5000505",
+        "SQU-5001474",
+        "DWE-5004848",
+        "MAG-5003462",
+        "SQU-5001371"
+      ]
+    },
+    {
+      "endpoint": "/v1/projects",
+      "category": "consistency",
+      "documented": "total_listings is recomputed whenever a listing is added or withdrawn, so it always agrees with GET /v1/listings?project_id=...",
+      "actual": "Reported total_listings contradicts the count of retrievable listings for the project_id across most projects",
+      "how_found": "Aggregated listings by project_id and compared against project total_listings field",
+      "impact": "Frontend displays incorrect listing counts on project pages if trusting the project metadata",
+      "evidence": [
+        "P50001",
+        "P50002",
+        "P50003",
+        "P50004",
+        "P50005",
+        "P50006",
+        "P50008",
+        "P50010",
+        "P50011",
+        "P50012",
+        "P50013",
+        "P50014",
+        "P50015",
+        "P50016",
+        "P50018"
+      ]
+    }
+  ]
+}
